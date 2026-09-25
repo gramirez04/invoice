@@ -108,8 +108,10 @@
       .page { width: 100%; margin: 0; padding: 25px; box-shadow: none; }  
       .header, .info, .split-footer { flex-direction: column; display: flex; }  
       h2 { text-align: left; margin-top: 20px; margin-bottom: 15px; }  
-      .invoice-meta { justify-content: start; grid-template-columns: max-content 1fr; gap: 8px; }
-      .invoice-meta label, .invoice-meta input { text-align: left; }
+      .invoice-meta { justify-content: start; grid-template-columns: 100px 1fr; gap: 12px 8px; align-items: center; }
+      .invoice-meta label { text-align: left; padding-top: 2px; }
+      .invoice-meta input, .invoice-meta select { text-align: left !important; justify-content: flex-start; padding-left: 0; }
+      .invoice-meta input::-webkit-date-and-time-value { text-align: left; margin: 0; }
       .meta-select { direction: ltr; }
       .toolbar { position: static; }  
       .total-due-wrapper { justify-content: center; }
@@ -164,7 +166,7 @@
 <main class="page">  
   <header class="header">    
     <div>      
-      <div style="display:flex; align-items:center; gap:15px; margin-bottom:12px; min-height:48px;">        
+      <div style="display:flex; align-items:center; gap:15px; margin-bottom:12px; min-height:48px; flex-wrap: wrap;">        
         <div class="brand" id="defaultBrand">          
           <div class="mark">SL</div>          
           <div>
