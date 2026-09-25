@@ -1,441 +1,553 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SigningLedger Invoice</title>
-<style>
-:root {
-  --green: #0d5c4b; 
-  --blue: #174a78; 
-  --ink: #26343b; 
-  --muted: #6b7780; 
-  --line: #d9e0e4; 
-  --soft: #f5f7f8;
-}
-
-* { box-sizing: border-box; }
-
-body {
-  margin: 0; 
-  background: #eef2f3; 
-  font-family: Arial, Helvetica, sans-serif; 
-  color: var(--ink);
-}
-
-/* Fix text areas globally to remove the diagonal resize handles */
-textarea { resize: none !important; font-family: inherit; }
-
-.toolbar {
-  position: sticky; 
-  top: 0; 
-  z-index: 10; 
-  background: #fff; 
-  border-bottom: 1px solid var(--line); 
-  padding: 12px 20px; 
-  display: flex; 
-  gap: 10px; 
-  justify-content: flex-end;
-}
-button {
-  border: 0; 
-  border-radius: 6px; 
-  padding: 10px 16px; 
-  font-weight: 700; 
-  cursor: pointer;
-}
-.secondary { background: #eef3f5; color: var(--ink); transition: background 0.2s; }
-.secondary:hover { background: #e1e7e9; }
-/* Main Page */
-.page {
-  width: 8.5in; 
-  min-height: 11in; 
-  margin: 25px auto; 
-  background: #fff; 
-  padding: .55in; 
-  box-shadow: 0 4px 24px #0001;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  display: flex; 
-  justify-content: space-between; 
-  gap: 30px; 
-  border-bottom: 3px solid var(--green); 
-  padding-bottom: 20px;
-}
-.brand { display: flex; align-items: center; gap: 12px; }
-.mark {
-  width: 48px; height: 48px; border-radius: 10px; 
-  background: linear-gradient(135deg, var(--green), var(--blue)); 
-  color: #fff; display: grid; place-items: center; 
-  font-size: 23px; font-weight: 900;
-}
-.brand h1 { margin: 0; font-size: 24px; letter-spacing: -.5px; }
-.brand span { color: var(--blue); }
-.small { font-size: 12px; color: var(--muted); line-height: 1.5; }
-h2 { margin: 0; color: var(--blue); font-size: 30px; text-align: right; }
-.invoice-meta { text-align: right; font-size: 13px; line-height: 1.8; }
-.invoice-meta input { width: 125px; text-align: right; }
-
-input, textarea {
-  font: inherit; border: 1px solid transparent; background: transparent; 
-  padding: 4px 6px; border-radius: 4px; color: inherit; width: 100%; /* Default width for inputs/textareas */
-}
-input:hover, textarea:hover, input:focus, textarea:focus {
-  border-color: #cbd6da; background: #fafcfc; outline: none;
-}
-/* Strip up/down arrows from number inputs for clean alignment */
-input[type="number"]::-webkit-inner-spin-button, 
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none; margin: 0;
-}
-input[type="number"] { -moz-appearance: textfield; }
-
-.info { display: flex; gap: 30px; margin: 20px 0; align-items: stretch; }
-.info-col { flex: 1; display: flex; flex-direction: column; }
-.label {
-  font-size: 10px; font-weight: 800; text-transform: uppercase; 
-  color: var(--muted); letter-spacing: .8px; margin-bottom: 4px;
-}
-.box {
-  background: var(--soft); padding: 14px 16px; border-radius: 6px; 
-  flex-grow: 1; display: flex; flex-direction: column;
-}
-.addr-wrapper { display: flex; flex-direction: column; gap: 0; margin-bottom: 12px; }
-.addr-input {
-  display: block; width: 100%; padding: 2px 4px; margin: 0; 
-  font-size: 13px; line-height: 1.2;
-}
-.addr-title { font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
-
-/* Signer Row */
-.signer-row {
-  margin-top: auto; padding-top: 12px; border-top: 1px solid #d9e0e4; 
-  display: flex; align-items: center; gap: 8px;
-}
-.signer-row label {
-  font-size: 10px; font-weight: 800; color: var(--muted); 
-  letter-spacing: 0.5px; margin: 0;
-}
-.signer-row input {
-  flex: 1; background: #fff; border: 1px solid #cbd6da; 
-  font-weight: 700; padding: 5px 8px; font-size: 13px; border-radius: 4px;
-}
-.terms-box textarea { width: 100%; flex-grow: 1; padding: 4px; font-size: 13px; line-height: 1.4; }
-
-table {
-  width: 100%; border-collapse: collapse; margin-top: 18px; 
-  table-layout: fixed; /* Locks columns so math aligns perfectly */
-}
-th {
-  background: var(--blue); color: #fff; text-align: left; 
-  font-size: 11px; text-transform: uppercase; padding: 10px 8px;
-}
-td { border-bottom: 1px solid var(--line); padding: 4px 8px; }
-/* STRUCTURAL ALIGNMENT FIX: Removes default input padding so text aligns flawlessly with headers */
-#items td input { padding-left: 0 !important; padding-right: 0 !important; width: 100% !important; }
-
-.desc { width: 100%; } 
-.num { text-align: right; } /* Removed the hardcoded 80px width causing the center-left shift */
-.amount { text-align: right; white-space: nowrap; }
-.action-col { width: 40px; text-align: center; padding: 0 !important; }
-
-.remove { color: #a33; background: none; padding: 2px 6px; font-size: 16px; }
-.add {
-  margin-top: 10px; background: #edf5f2; color: var(--green); 
-  font-size: 12px; transition: background 0.2s;
-}
-.add:hover { background: #e1efe9; }
-
-.summary { margin-left: auto; width: 320px; margin-top: 20px; margin-bottom: 30px; }
-.row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 14px; }
-.total {
-  border-top: 2px solid var(--green); font-size: 20px; font-weight: 800; 
-  color: var(--blue); padding-top: 12px;
-}
-/* Aligns exactly with the Amount column (40px button + 8px cell padding) */
-.summary-val {
-  text-align: right; margin: 0; font-family: inherit; 
-  padding-right: 48px !important; width: 120px;
-}
-
-/* Balance Due - Anchored right inside full-width strip */
-.balance {
-  margin-top: auto; 
-  background: #edf5f2; 
-  padding: 14px 48px 14px 14px; /* Matches alignment of totals */
-  border-left: 4px solid var(--green); 
-  font-weight: 700; 
-  text-align: right; 
-  font-size: 16px;
-}
-
-/* Rectangular Notes & Comments boxes */
-.footer { margin-top: 35px; }
-.bordered-box {
-  border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 4px; display: flex;
-}
-.bordered-box textarea { 
-  width: 100%; 
-  padding: 8px; 
-  border: none; /* Remove duplicate border on the textarea itself */
-  background: transparent;
-}
-.bordered-box textarea:hover, .bordered-box textarea:focus {
-    border: none; /* Prevent double borders on hover/focus */
-}
-
-/* Screen Size Media Query */
-@media screen and (max-width:800px) {
-  .page { width: 100%; margin: 0; padding: 25px; box-shadow: none; }
-  .header, .info { flex-direction: column; display: flex; }
-  .invoice-meta, h2 { text-align: left; margin-top: 20px; }
-  .invoice-meta input { text-align: left; }
-  .toolbar { position: static; }
-  .summary { width: 100%; }
-}
-/* Perfect One-Page Print Media Query */
-@media print {
-  @page { size: letter portrait; margin: 0; }
-  
-  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff; }
-  body { font-size: 13px; }
-  
-  /* Unlocks the page height so spacing flows naturally and eliminates huge gaps */
-  .page { margin: 0 auto; padding: .4in .5in; box-shadow: none; page-break-after: avoid; min-height: 9.8in; }
-  
-  /* Hides interactive elements AND the default SigningLedger Brand */
-  .toolbar, .remove, .add, .template-note, .no-print, .brand { display: none !important; }
-  ::-webkit-calendar-picker-indicator { display: none !important; }
-  
-  /* Bulletproof placeholder hiding */
-  input::placeholder, textarea::placeholder { color: transparent !important; }
-  
-  /* Auto-collapses empty address lines in the header and Bill To boxes */
-  .addr-input:placeholder-shown { display: none !important; }
-  
-  /* Converts standard inputs to look like clean text */
-  input, textarea { border-color: transparent !important; background: transparent !important; padding: 0!important;}
-  
-  /* Keeps the Signer box transparent so it seamlessly matches the gray Terms block */
-  .signer-row input { background: transparent !important; border-color: transparent !important; }
-  
-  /* Preserves the rectangular boxes for Notes and Comments */
-  .bordered-box { border: 1px solid var(--line) !important; padding: 8px !important; }
-  .bordered-box textarea { padding: 0 !important; width: 100% !important; }
-  
-  /* Adjust Totals alignment to compensate for hidden action column */
-  .action-col { display: none !important; }
-  .summary-val { padding-right: 8px !important; }
-  .balance { padding-right: 8px !important; }
-  
-  .header { padding-bottom: 12px; border-bottom-width: 2px; }
-  .info { gap: 25px; margin: 15px 0; }
-  .box { padding: 12px; }
-  th { padding: 8px; } 
-  td { padding: 6px 8px; }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SigningLedger Invoice</title>
+  <style>
+    :root {  
+      --green: #0d5c4b;   
+      --blue: #174a78;   
+      --ink: #26343b;   
+      --muted: #6b7780;   
+      --line: #d9e0e4;   
+      --soft: #f5f7f8;
+    }
+    * { box-sizing: border-box; }
+    body {  margin: 0;   background: #eef2f3;   font-family: Arial, Helvetica, sans-serif;   color: var(--ink);}
+    
+    /* Fix text areas globally to remove the diagonal resize handles */
+    textarea { resize: none !important; font-family: inherit; }
+    
+    .toolbar {  position: sticky;   top: 0;   z-index: 10;   background: #fff;   border-bottom: 1px solid var(--line);   padding: 12px 20px;   display: flex;   gap: 10px;   justify-content: flex-end;}
+    button {  border: 0;   border-radius: 6px;   padding: 10px 16px;   font-weight: 700;   cursor: pointer;}
+    .secondary { background: #eef3f5; color: var(--ink); transition: background 0.2s; }
+    .secondary:hover { background: #e1e7e9; }
+    
+    /* Main Page */
+    .page {  width: 8.5in;   min-height: 11in;   margin: 25px auto;   background: #fff;   padding: .55in;   box-shadow: 0 4px 24px #0001;  display: flex;  flex-direction: column;}
+    
+    .header {  display: flex;   justify-content: space-between;   gap: 30px;   border-bottom: 3px solid var(--green);   padding-bottom: 20px;}
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .mark {  width: 48px; height: 48px; border-radius: 10px;   background: linear-gradient(135deg, var(--green), var(--blue));   color: #fff; display: grid; place-items: center;   font-size: 23px; font-weight: 900;}
+    .brand h1 { margin: 0; font-size: 24px; letter-spacing: -.5px; }
+    .brand span { color: var(--blue); }
+    .small { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    h2 { margin: 0; color: var(--blue); font-size: 30px; text-align: right; }
+    
+    /* Responsive Grid for Invoice Meta */
+    .invoice-meta { display: grid; grid-template-columns: max-content 1fr; gap: 6px 10px; justify-content: end; align-items: center; font-size: 13px; margin-top: 10px; }
+    .invoice-meta label { text-align: right; color: var(--muted); font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin: 0; }
+    .invoice-meta input, .invoice-meta select { width: 100%; min-height: 28px; text-align: right; margin: 0; font-weight: 700; color: var(--ink); padding: 4px 6px; border: 1px solid transparent; border-radius: 4px; transition: border 0.2s, background 0.2s; cursor: pointer; }
+    .invoice-meta input:hover, .invoice-meta input:focus, .invoice-meta select:hover, .invoice-meta select:focus { border-color: #cbd6da; background: #fafcfc; outline: none; }
+    /* Fix dropdown arrow alignment */
+    .meta-select { direction: rtl; }
+    .meta-select option { direction: ltr; }
+    
+    input, textarea, select {  font: inherit; border: 1px solid transparent; background: transparent;   padding: 4px 6px; border-radius: 4px; color: inherit; width: 100%;}
+    input:hover, textarea:hover, select:hover, input:focus, textarea:focus, select:focus {  border-color: #cbd6da; background: #fafcfc; outline: none;}
+    
+    /* Strip up/down arrows from number inputs for clean alignment */
+    input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button {  -webkit-appearance: none; margin: 0;}
+    input[type="number"] { -moz-appearance: textfield; }
+    
+    .info { display: flex; gap: 30px; margin: 20px 0; align-items: stretch; }
+    .info-col { flex: 1; display: flex; flex-direction: column; }
+    .label {  font-size: 10px; font-weight: 800; text-transform: uppercase;   color: var(--muted); letter-spacing: .8px; margin-bottom: 4px;}
+    .box {  background: var(--soft); padding: 14px 16px; border-radius: 6px;   flex-grow: 1; display: flex; flex-direction: column;}
+    .addr-wrapper { display: flex; flex-direction: column; gap: 0; margin-bottom: 12px; }
+    .addr-input {  display: block; width: 100%; padding: 2px 4px; margin: 0;   font-size: 13px; line-height: 1.2;}
+    .addr-title { font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+    
+    /* Order Detail Rows */
+    .detail-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .detail-row:last-child { margin-bottom: 0; }
+    .detail-row label { font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 0.5px; margin: 0; width: 125px; flex-shrink: 0; text-transform: uppercase; }
+    .detail-row input, .detail-row select { width: 100%; background: #fff; border: 1px solid #cbd6da; font-weight: 700; padding: 5px 8px; font-size: 13px; border-radius: 4px; color: var(--ink); }
+    .detail-row .input-wrap { flex: 1; display: flex; gap: 5px; flex-direction: column; }
+    
+    /* Responsive Table Wrapper */
+    .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 18px; }
+    table {  width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 600px; }
+    th {  background: var(--blue); color: #fff; text-align: left;   font-size: 11px; text-transform: uppercase; padding: 10px 8px;}
+    td { border-bottom: 1px solid var(--line); padding: 4px 8px; }
+    
+    /* STRUCTURAL ALIGNMENT FIX */
+    #items td input { padding-left: 0 !important; padding-right: 0 !important; width: 100% !important; }
+    
+    .desc { width: 100%; } 
+    .num { text-align: right; } 
+    .amount { text-align: right; white-space: nowrap; }
+    .action-col { width: 40px; text-align: center; padding: 0 !important; }
+    
+    .remove { color: #a33; background: none; padding: 2px 6px; font-size: 16px; }
+    .add {  margin-top: 10px; background: #edf5f2; color: var(--green);   font-size: 12px; transition: background 0.2s; align-self: flex-start;}
+    .add:hover { background: #e1efe9; }
+    
+    /* Total Due */
+    .total-due-wrapper { display: flex; justify-content: flex-end; margin-top: 20px; margin-bottom: 20px; }
+    .total-due-block { background-color: #1c2341; color: white; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 320px; padding: 18px 24px; }
+    .total-due-block .label-td { font-size: 13px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+    .total-due-block .amount-td { font-size: 24px; font-weight: bold; }
+    
+    /* Rectangular Notes, Payment & Comments boxes */
+    .footer-pin { margin-top: auto; display: flex; flex-direction: column; gap: 20px; }
+    .bordered-box {  border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 4px; display: flex;}
+    .bordered-box textarea {   width: 100%;   padding: 8px;   border: none;  background: transparent;}
+    .bordered-box textarea:hover, .bordered-box textarea:focus {    border: none; }
+    
+    /* Split Footer for Payment & Comments */
+    .split-footer { display: flex; gap: 30px; align-items: stretch; margin-top: 5px; }
+    .pm-box { flex-direction: column; padding: 12px; }
+    .pm-form { display: flex; flex-direction: column; gap: 6px; }
+    .pm-form input { background: #fff; border: 1px solid #cbd6da; padding: 6px 8px; font-weight: 700; color: var(--ink); border-radius: 4px; }
+    .pm-form select { background: #fff; border: 1px solid #cbd6da; padding: 6px 8px; font-weight: 700; color: var(--ink); border-radius: 4px; }
+    
+    /* Screen Size Media Query for Mobile/Tablets */
+    @media screen and (max-width:800px) {  
+      .page { width: 100%; margin: 0; padding: 25px; box-shadow: none; }  
+      .header, .info, .split-footer { flex-direction: column; display: flex; }  
+      h2 { text-align: left; margin-top: 20px; margin-bottom: 15px; }  
+      .invoice-meta { justify-content: start; grid-template-columns: max-content 1fr; gap: 8px; }
+      .invoice-meta label, .invoice-meta input { text-align: left; }
+      .meta-select { direction: ltr; }
+      .toolbar { position: static; }  
+      .total-due-wrapper { justify-content: center; }
+      .total-due-block { max-width: 100%; }
+      #shippingDetails { flex-direction: column !important; }
+      .detail-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .detail-row label { width: 100%; }
+      .split-footer { gap: 20px; }
+    }
+    
+    /* Perfect One-Page Print Media Query */
+    @media print {  
+      @page { size: letter portrait; margin: 0; }    
+      html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff; }  
+      body { font-size: 13px; }    
+      
+      .page { margin: 0 auto; padding: .4in .5in; box-shadow: none; page-break-after: avoid; min-height: 9.8in; }    
+      .toolbar, .remove, .add, .template-note, .no-print, .brand { display: none !important; }  
+      ::-webkit-calendar-picker-indicator { display: none !important; }    
+      
+      input::placeholder, textarea::placeholder { color: transparent !important; }    
+      .addr-input:placeholder-shown { display: none !important; }    
+      
+      input, textarea, select { border-color: transparent !important; background: transparent !important; padding: 0!important; -webkit-appearance: none; -moz-appearance: none; appearance: none;}    
+      .detail-row input, .detail-row select { background: transparent !important; border-color: transparent !important; padding: 0 !important; }    
+      .detail-row .input-wrap { gap: 0 !important; }
+      .pm-form input, .pm-form select { background: transparent !important; border-color: transparent !important; padding: 0 !important; margin: 0 !important; }
+      
+      .bordered-box { border: 1px solid var(--line) !important; padding: 8px !important; }  
+      .bordered-box textarea { padding: 0 !important; width: 100% !important; }    
+      
+      .table-responsive { overflow: visible !important; }
+      table { min-width: auto !important; }
+      .action-col { display: none !important; }  
+      
+      .header { padding-bottom: 12px; border-bottom-width: 2px; }  
+      .info { gap: 25px; margin: 15px 0; }  
+      .box { padding: 12px; }  
+      th { padding: 8px; }   
+      td { padding: 6px 8px; }
+      .footer-pin { gap: 10px; }
+      .split-footer { gap: 15px; margin-top: 0; }
+      .total-due-wrapper { margin-top: 10px; margin-bottom: 10px; }
+    }
+  </style>
 </head>
 <body>
-<div class="toolbar">
+<div class="toolbar">  
   <button class="secondary" onclick="window.print()">Print / Save PDF</button>
 </div>
 
-<main class="page">
-  <header class="header">
-    <div>
-      <div style="display:flex; align-items:center; gap:15px; margin-bottom:12px; min-height:48px;">
-        <div class="brand" id="defaultBrand">
-          <div class="mark">SL</div>
-          <div><h1>Signing<span>Ledger</span></h1><div class="small">Business Management • Accounting • Tax Planning</div></div>
+<main class="page">  
+  <header class="header">    
+    <div>      
+      <div style="display:flex; align-items:center; gap:15px; margin-bottom:12px; min-height:48px;">        
+        <div class="brand" id="defaultBrand">          
+          <div class="mark">SL</div>          
+          <div>
+            <h1>Signing<span>Ledger</span></h1>
+            <div class="small" style="white-space: nowrap;">Business Management • Accounting • Tax Planning</div>
+            <div class="no-print" style="font-size: 10px; color: #c62828; margin-top: 3px; font-weight: normal; letter-spacing: 0;">Don't have a logo? No worries, this won't print.</div>
+          </div>        
+        </div>                
+        <img id="userLogo" style="display:none; width:75px; height:75px; object-fit:contain; border-radius:6px;">                
+        <label id="uploadBtn" class="no-print" style="cursor:pointer; font-size:11px; background:#eef3f5; color:var(--blue); padding:6px 12px; border-radius:4px; font-weight:700;">          
+          Upload Logo          
+          <input type="file" accept="image/*" style="display:none" onchange="uploadLogo(event)">        
+        </label>        
+        <button id="removeBtn" class="no-print" style="display:none; font-size:11px; background:#fbebeb; color:#c62828; padding:6px 12px; border-radius:4px; font-weight:700;" onclick="removeLogo()">Remove Logo</button>      
+      </div>            
+      <div class="addr-wrapper small" style="margin-top:16px;">        
+        <!-- IDs added to power the live-sync feature -->
+        <input id="biz-name" class="addr-input" placeholder="Your Business Name" style="font-weight:800;font-size:18px;width:320px;max-width:100%;color:var(--ink);" oninput="syncBizToRemit()">        
+        <input id="biz-street" class="addr-input" placeholder="123 Business Street" style="width:320px;max-width:100%;font-size:13px;" oninput="syncBizToRemit()">        
+        <input id="biz-city" class="addr-input" placeholder="City, State, Zip Code • (555) 555-5555" style="width:320px;max-width:100%;font-size:13px;" oninput="syncBizToRemit()">      
+      </div>    
+    </div>        
+    <div>      
+      <h2>INVOICE</h2>      
+      <div class="invoice-meta">        
+        <label>Invoice #:</label> <input id="invoiceNo" value="INV-1001">        
+        <label>Invoice Date:</label> <input id="invoiceDate" type="date">        
+        <label>Due Date:</label> <input id="dueDate" type="date">        
+        <label>Terms:</label> 
+        <div style="position: relative; width: 100%;">
+          <select id="terms-select" class="meta-select" onchange="handleTermsChange()">
+              <option value="Upon Receipt">Upon Receipt</option>
+              <option value="15 Days">15 Days</option>
+              <option value="30 Days" selected>30 Days</option>
+              <option value="45 Days">45 Days</option>
+              <option value="other">Other...</option>
+          </select>
+          <input id="terms-input" type="text" style="display: none;" placeholder="e.g., 60 Days" oninput="calculateDueDate()">
         </div>
-        
-        <img id="userLogo" style="display:none; width:75px; height:75px; object-fit:contain; border-radius:6px;">
-        
-        <label id="uploadBtn" class="no-print" style="cursor:pointer; font-size:11px; background:#eef3f5; color:var(--blue); padding:6px 12px; border-radius:4px; font-weight:700;">
-          Upload Logo
-          <input type="file" accept="image/*" style="display:none" onchange="uploadLogo(event)">
-        </label>
-        <button id="removeBtn" class="no-print" style="display:none; font-size:11px; background:#fbebeb; color:#c62828; padding:6px 12px; border-radius:4px; font-weight:700;" onclick="removeLogo()">Remove Logo</button>
-      </div>
-      
-      <div class="addr-wrapper small" style="margin-top:16px;">
-        <input class="addr-input" placeholder="Your Business Name" style="font-weight:800;font-size:18px;width:320px;color:var(--ink);">
-        <input class="addr-input" placeholder="123 Business Street" style="width:320px;font-size:13px;">
-        <input class="addr-input" placeholder="City, State, Zip Code • (555) 555-5555" style="width:320px;font-size:13px;">
-      </div>
-    </div>
-    
-    <div>
-      <h2>INVOICE</h2>
-      <div class="invoice-meta">
-        Invoice #: <input id="invoiceNo" value="INV-1001"><br>
-        Invoice Date: <input id="invoiceDate" type="date"><br>
-        Due Date: <input id="dueDate" type="date"><br>
-        Customer Ref: <input id="customerRef" placeholder="File / Order #">
-      </div>
-    </div>
+      </div>    
+    </div>  
   </header>
 
-  <section class="info">
-    <div class="info-col">
-      <div class="label">Bill To</div>
-      <div class="box">
-        <div class="addr-wrapper">
-          <input class="addr-input addr-title" placeholder="Customer / Company Name">
-          <input class="addr-input" placeholder="Contact Name">
-          <input class="addr-input" placeholder="Street Address">
-          <input class="addr-input" placeholder="City, State, Zip Code">
-          <input class="addr-input" placeholder="Email / Phone">
-        </div>
-      </div>
-    </div>
-    <div class="info-col">
-      <div class="label">Payment Terms</div>
-      <div class="box terms-box">
-        <input class="addr-input addr-title" placeholder="Net 30" value="Net 30">
-        <textarea placeholder="Payment instructions, payment link, or additional customer information."></textarea>
-        
-        <div class="signer-row">
-          <label>SIGNER(S):</label>
-          <input placeholder="John Smith">
-        </div>
-      </div>
-    </div>
+  <section class="info">    
+    <div class="info-col">      
+      <div class="label">Bill To</div>      
+      <div class="box">        
+        <div class="addr-wrapper">          
+          <input class="addr-input addr-title" placeholder="Customer / Company Name">          
+          <input class="addr-input" placeholder="Contact Name">          
+          <input class="addr-input" placeholder="Street Address">          
+          <input class="addr-input" placeholder="City, State, Zip Code">          
+          <input class="addr-input" placeholder="Email / Phone">        
+        </div>      
+      </div>    
+    </div>    
+    <div class="info-col">      
+      <div class="label">Order Details</div>      
+      <div class="box">        
+        <div class="detail-row">          
+          <label>Customer Ref:</label>          
+          <div class="input-wrap"><input id="customerRef" placeholder="File / Order #"></div>        
+        </div>      
+        <div class="detail-row">          
+          <label>Signer(s) Name(s):</label>          
+          <div class="input-wrap"><input placeholder="e.g., John Smith"></div>        
+        </div>      
+        <div class="detail-row">          
+          <label>Assignment Source:</label>          
+          <div class="input-wrap">
+            <select id="source-select" onchange="handleSourceChange()" style="cursor: pointer;">
+                <option value="SnapDocs">SnapDocs</option>
+                <option value="Signing Order">Signing Order</option>
+                <option value="Direct">Direct</option>
+                <option value="other">Other...</option>
+            </select>
+            <input id="source-input" type="text" style="display: none;" placeholder="Specify source...">
+          </div>
+        </div>      
+      </div>    
+    </div>  
   </section>
 
-  <table id="items">
-    <thead>
-      <tr>
-        <th style="width:auto">Description</th>
-        <th style="width:12%;text-align:right">Qty</th>
-        <th style="width:16%;text-align:right">Rate</th>
-        <th style="width:16%;text-align:right">Amount</th>
-        <th class="action-col no-print"></th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="table-responsive">
+    <table id="items">    
+      <thead>      
+        <tr>        
+          <th style="width:auto">Description</th>        
+          <th style="width:12%;text-align:right">Qty</th>        
+          <th style="width:16%;text-align:right">Rate</th>        
+          <th style="width:16%;text-align:right">Amount</th>        
+          <th class="action-col no-print"></th>      
+        </tr>    
+      </thead>    
+      <tbody></tbody>  
+    </table>
+  </div>
+  
   <button class="add no-print" onclick="addRow()">+ Add line item</button>
 
-  <section class="summary">
-    <div class="row"><span>Subtotal</span><strong class="summary-val" id="subtotal">$0.00</strong></div>
-    <div class="row"><span>Discount</span><input id="discount" class="summary-val" type="number" min="0" step=".01" placeholder="0.00" oninput="calculate()" onblur="formatDiscount(this)"></div>
-    <div class="row total"><span>Total</span><span class="summary-val" id="total">$0.00</span></div>
-  </section>
+  <div class="total-due-wrapper">
+      <div class="total-due-block">
+          <span class="label-td">Total Due</span>
+          <span id="grand-total" class="amount-td">$0.00</span>
+      </div>
+  </div>
 
-  <!-- Balance Due is strictly right-aligned inside a full-width strip -->
-  <div class="balance">Balance Due: <span id="balance">$0.00</span></div>
+  <div class="footer-pin">
+      <section id="shippingSection" class="no-print">
+        <div class="label" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Drop-off / Shipping Details</span>
+          <label class="no-print" style="cursor:pointer; display:flex; align-items:center; gap:5px; color:var(--blue); font-weight:700; text-transform:none; font-size:12px; margin-bottom: 0;">
+            <input type="checkbox" id="toggleShipping" onchange="toggleShippingFields()" style="width:auto; cursor:pointer;"> Include on invoice
+          </label>
+        </div>
+        <div id="shippingDetails" class="bordered-box" style="display: none; gap: 15px; padding: 12px 16px; align-items: flex-start; margin-top: 4px;">
+          <div style="flex: 1; width: 100%;">
+            <div class="addr-title" style="font-size:11px; color:var(--muted); margin-bottom:4px;">Carrier</div>
+            <select id="shipCarrier" class="addr-input" style="font-weight:700; color:var(--ink); padding: 4px;">
+              <option value="FedEx">FedEx</option>
+              <option value="UPS">UPS</option>
+              <option value="USPS">USPS</option>
+              <option value="DHL">DHL</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div style="flex: 2; width: 100%;">
+            <div class="addr-title" style="font-size:11px; color:var(--muted); margin-bottom:4px;">Tracking Number</div>
+            <input id="shipTracking" type="text" class="addr-input" placeholder="e.g. 1Z9999999999999999" style="font-weight:700; color:var(--ink); padding: 4px;">
+          </div>
+          <div style="flex: 1; width: 100%;">
+            <div class="addr-title" style="font-size:11px; color:var(--muted); margin-bottom:4px;">Drop-off Date</div>
+            <input id="shipDate" type="date" class="addr-input" style="font-weight:700; color:var(--ink); padding: 4px;">
+          </div>
+        </div>
+      </section>
 
-  <footer class="footer">
-    <div class="label">Notes</div>
-    <div class="bordered-box">
-      <textarea style="height: 60px;" placeholder="Thank you for your business.">Thank you for your business!</textarea>
-    </div>
-  </footer>
+      <div class="split-footer">
+          <section style="flex: 1; display: flex; flex-direction: column;">
+              <div class="label" style="display:flex; flex-direction:column; gap:2px; align-items:flex-start; margin-bottom:6px;">
+                  <span>Payment Options</span>
+                  <span class="no-print" style="font-size: 10px; color: #c62828; text-transform: none; letter-spacing: 0; font-weight: 400;">Check all that apply</span>
+              </div>
+              <div class="bordered-box pm-box" style="flex: 1;">
+                  <!-- Toggles for Multiple Payment Methods -->
+                  <div class="pm-toggles no-print" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; font-size: 12px; font-weight: 700; color: var(--blue); border-bottom: 1px solid var(--line); padding-bottom: 10px;">
+                      <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="toggle-check" value="check" checked onchange="togglePaymentMethods()"> Check</label>
+                      <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="toggle-ach" value="ach" onchange="togglePaymentMethods()"> ACH</label>
+                      <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="toggle-zelle" value="zelle" onchange="togglePaymentMethods()"> Zelle</label>
+                      <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="toggle-venmo" value="venmo" onchange="togglePaymentMethods()"> Venmo</label>
+                      <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="toggle-cashapp" value="cashapp" onchange="togglePaymentMethods()"> CashApp</label>
+                  </div>
+                  
+                  <div id="pm-forms" style="display: flex; flex-direction: column; gap: 12px;">
+                      <div id="pm-check" class="pm-form">
+                          <div class="addr-title" style="font-size:11px; color:var(--muted); margin-bottom:2px;">Remit Check To:</div>
+                          <!-- The dataset.edited flag handles manual overrides -->
+                          <textarea id="remit-to" style="height: 60px; padding: 4px; border: 1px solid #cbd6da; border-radius:4px; font-weight:700; font-size:13px;" placeholder="Business Name&#10;Street Address&#10;City, State, Zip" oninput="this.dataset.edited = 'true'"></textarea>
+                      </div>
 
-  <section style="margin-top: 25px;">
-    <div class="label">Invoice Comments</div>
-    <div class="bordered-box">
-      <textarea style="height:40px;" placeholder="Add comments, project details, payment instructions, or other information that should appear on the printed invoice."></textarea>
-    </div>
-  </section>
+                      <div id="pm-ach" class="pm-form" style="display: none;">
+                          <div class="addr-title" style="font-size:11px; color:var(--muted); margin-bottom:2px;">ACH / Wire Transfer:</div>
+                          <input type="text" placeholder="Bank Name" style="font-size: 13px;">
+                          <div style="display: flex; gap: 5px;">
+                              <input type="text" placeholder="Routing (ABA)" style="font-size: 13px; flex: 1;">
+                              <input type="text" placeholder="Account Number" style="font-size: 13px; flex: 1;">
+                          </div>
+                      </div>
 
-  <section class="template-note no-print" style="margin-top:25px;padding:12px 14px;border:1px solid #d9e0e4;border-radius:6px;background:#fafcfc;font-size:10.5px;line-height:1.55;color:#5f6b72;">
-    <strong style="color:#c62828;">Note: This box won't print.</strong>
-    It is included only to provide information about the template and SigningLedger.
-    <br><br>
-    <strong style="color:#0d5c4b;">Thank you for using this invoice template.</strong>
-    SigningLedger is a business management, accounting, and tax-planning platform built specifically for
-    <strong>Notaries Public and Loan Signing Agents</strong>. It helps you organize signings and appointments,
-    track mileage and deductions, manage customers and signing companies, create invoices, monitor accounts receivable,
-    and keep your business records organized for tax preparation.
-    <br><br>
-    We're currently inviting Notaries and Loan Signing Agents to participate in the
-    <strong>SigningLedger Pilot Program</strong>, provide honest feedback, and help shape the platform before launch.
-    Visit <strong>www.SigningLedger.com</strong> to learn more and join the pilot.
-    <br><br>
-    <strong style="color:#26343b;">Privacy &amp; Data Notice:</strong>
-    This invoice is a standalone HTML document. Information entered into this invoice is not collected, transmitted, or stored by this invoice template.
-    Your invoice information remains on your device unless you choose to save, print, or share the completed invoice.
-  </section>
+                      <div id="pm-zelle" class="pm-form" style="display: none; flex-direction: row; align-items: center; gap: 8px;">
+                          <div class="addr-title" style="font-size:12px; color:var(--ink); margin-bottom:0; width: 65px;">Zelle:</div>
+                          <input type="text" placeholder="email or phone number" style="font-size: 13px; flex: 1;">
+                      </div>
+                      
+                      <div id="pm-venmo" class="pm-form" style="display: none; flex-direction: row; align-items: center; gap: 8px;">
+                          <div class="addr-title" style="font-size:12px; color:var(--ink); margin-bottom:0; width: 65px;">Venmo:</div>
+                          <input type="text" placeholder="@username" style="font-size: 13px; flex: 1;">
+                      </div>
+
+                      <div id="pm-cashapp" class="pm-form" style="display: none; flex-direction: row; align-items: center; gap: 8px;">
+                          <div class="addr-title" style="font-size:12px; color:var(--ink); margin-bottom:0; width: 65px;">CashApp:</div>
+                          <input type="text" placeholder="$cashtag" style="font-size: 13px; flex: 1;">
+                      </div>
+                  </div>
+              </div>
+          </section>
+          
+          <section style="flex: 1; display: flex; flex-direction: column;">
+              <div class="label" style="display:flex; flex-direction:column; gap:2px; align-items:flex-start; margin-bottom:6px;">
+                  <span>Comments</span>
+                  <span class="no-print" style="font-size: 10px; visibility: hidden; pointer-events: none;">Spacer</span>
+              </div>
+              <div class="bordered-box" style="flex: 1;">
+                  <textarea style="height: 100%; min-height: 80px;" placeholder="Add comments, project details, or other information that should appear on the printed invoice."></textarea>
+              </div>
+          </section>
+      </div>
+
+      <footer>    
+        <div class="label">Notes</div>    
+        <div class="bordered-box">      
+          <textarea style="height: 60px;" placeholder="Thank you for your business.">Thank you for your business!</textarea>    
+        </div>  
+      </footer>
+
+      <section class="template-note no-print" style="padding:12px 14px;border:1px solid #d9e0e4;border-radius:6px;background:#fafcfc;font-size:10.5px;line-height:1.55;color:#5f6b72;">    
+        <strong style="color:#c62828;">Note: This box won't print.</strong>    It is included only to provide information about the template and SigningLedger.    <br><br>    
+        <strong style="color:#0d5c4b;">Thank you for using this invoice template.</strong>    SigningLedger is a business management, accounting, and tax-planning platform built specifically for    
+        <strong>Notaries Public and Loan Signing Agents</strong>. It helps you organize signings and appointments,    track mileage and deductions, manage customers and signing companies, create invoices, monitor accounts receivable,    and keep your business records organized for tax preparation.    <br><br>    
+        We're currently inviting Notaries and Loan Signing Agents to participate in the    
+        <strong>SigningLedger Pilot Program</strong>, provide honest feedback, and help shape the platform before launch.    Visit <strong>www.SigningLedger.com</strong> to learn more and join the pilot.    <br><br>    
+        <strong style="color:#26343b;">Privacy &amp; Data Notice:</strong>    This invoice is a standalone HTML document. Information entered into this invoice is not collected, transmitted, or stored by this invoice template.    Your invoice information remains on your device unless you choose to save, print, or share the completed invoice.  
+      </section>
+  </div>
 </main>
 
 <script>
-// Formats numbers as US Currency
+// Math & Formatting Logic
 function money(n){return n.toLocaleString('en-US',{style:'currency',currency:'USD'})}
 
-// Enforces formatting on empty discount boxes when clicking away
-function formatDiscount(input) {
-  if (!input.value || parseFloat(input.value) === 0) {
-    input.value = "0.00";
-    calculate();
+function addRow(desc='',qty=1,rate=0){  
+  const tr=document.createElement('tr');  
+  tr.innerHTML=`<td><input class="desc" value="${desc}" placeholder="Service or product description"></td>  
+  <td><input class="num qty" type="number" min="0" step=".01" value="${qty}" oninput="calculate()"></td>  
+  <td><input class="num rate" type="number" min="0" step=".01" value="${rate}" oninput="calculate()"></td>  
+  <td class="amount">$0.00</td>  
+  <td class="action-col no-print"><button class="remove" onclick="this.closest('tr').remove();calculate()">×</button></td>`;  
+  document.querySelector('#items tbody').appendChild(tr); 
+  calculate();
+}
+
+function calculate(){ 
+  let total=0; 
+  document.querySelectorAll('#items tbody tr').forEach(tr=>{   
+    const qty=parseFloat(tr.querySelector('.qty').value)||0;   
+    const rate=parseFloat(tr.querySelector('.rate').value)||0;   
+    const amt=qty*rate; 
+    total+=amt; 
+    tr.querySelector('.amount').textContent=money(amt); 
+  });  
+  document.getElementById('grand-total').textContent = money(total);
+}
+
+// Interactive Toggles
+function toggleShippingFields() {
+  const isChecked = document.getElementById('toggleShipping').checked;
+  const container = document.getElementById('shippingDetails');
+  const section = document.getElementById('shippingSection');
+  if (isChecked) {
+    container.style.display = 'flex';
+    section.classList.remove('no-print');
+  } else {
+    container.style.display = 'none';
+    section.classList.add('no-print');
   }
 }
 
-// Adds a new row to the items table
-function addRow(desc='',qty=1,rate=0){
-  const tr=document.createElement('tr');
-  tr.innerHTML=`<td><input class="desc" value="${desc}" placeholder="Service or product description"></td>
-  <td><input class="num qty" type="number" min="0" step=".01" value="${qty}" oninput="calculate()"></td>
-  <td><input class="num rate" type="number" min="0" step=".01" value="${rate}" oninput="calculate()"></td>
-  <td class="amount">$0.00</td>
-  <td class="action-col no-print"><button class="remove" onclick="this.closest('tr').remove();calculate()">×</button></td>`;
-  document.querySelector('#items tbody').appendChild(tr); calculate();
-}
-
-// Calculates subtotals, discounts, and totals perfectly
-function calculate(){
- let subtotal=0;
- document.querySelectorAll('#items tbody tr').forEach(tr=>{
-   const qty=parseFloat(tr.querySelector('.qty').value)||0;
-   const rate=parseFloat(tr.querySelector('.rate').value)||0;
-   const amt=qty*rate; subtotal+=amt; tr.querySelector('.amount').textContent=money(amt);
- });
- 
- const discountInput = document.getElementById('discount');
- const discount = parseFloat(discountInput.value) || 0;
- const total=Math.max(0,subtotal-discount);
- 
- document.getElementById('subtotal').textContent=money(subtotal);
- document.getElementById('total').textContent=money(total);
- document.getElementById('balance').textContent=money(total);
-}
-
-// Seamless local Logo Upload without external servers
-function uploadLogo(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      document.getElementById('userLogo').src = e.target.result;
-      document.getElementById('userLogo').style.display = 'block';
-      document.getElementById('defaultBrand').style.display = 'none';
-      document.getElementById('uploadBtn').style.display = 'none';
-      document.getElementById('removeBtn').style.display = 'block';
-    };
-    reader.readAsDataURL(file);
+function uploadLogo(event) {  
+  const file = event.target.files[0];  
+  if (file) {    
+    const reader = new FileReader();    
+    reader.onload = function(e) {      
+      document.getElementById('userLogo').src = e.target.result;      
+      document.getElementById('userLogo').style.display = 'block';      
+      document.getElementById('defaultBrand').style.display = 'none';      
+      document.getElementById('uploadBtn').style.display = 'none';      
+      document.getElementById('removeBtn').style.display = 'block';    
+    };    
+    reader.readAsDataURL(file);  
   }
 }
 
-function removeLogo() {
-  document.getElementById('userLogo').src = '';
-  document.getElementById('userLogo').style.display = 'none';
-  document.getElementById('defaultBrand').style.display = 'flex';
-  document.getElementById('uploadBtn').style.display = 'block';
+function removeLogo() {  
+  document.getElementById('userLogo').src = '';  
+  document.getElementById('userLogo').style.display = 'none';  
+  document.getElementById('defaultBrand').style.display = 'flex';  
+  document.getElementById('uploadBtn').style.display = 'block';  
   document.getElementById('removeBtn').style.display = 'none';
 }
 
-// Initialize logic on page load
-const today=new Date();
-const iso=today.toISOString().slice(0,10);
-document.getElementById('invoiceDate').value=iso;
-const due=new Date(today); due.setDate(due.getDate()+30);
-document.getElementById('dueDate').value=due.toISOString().slice(0,10);
+const termsSelect = document.getElementById('terms-select');
+const termsInput = document.getElementById('terms-input');
+const sourceSelect = document.getElementById('source-select');
+const sourceInput = document.getElementById('source-input');
+
+function handleTermsChange() {
+    if (termsSelect.value === 'other') {
+        termsSelect.style.display = 'none';
+        termsInput.style.display = 'block';
+        termsInput.focus();
+    } else {
+        calculateDueDate();
+    }
+}
+
+termsInput.addEventListener('blur', function() {
+    if (this.value.trim() === '') {
+        termsInput.style.display = 'none';
+        termsSelect.style.display = 'block';
+        termsSelect.value = '30 Days';
+        calculateDueDate();
+    }
+});
+
+function handleSourceChange() {
+    if (sourceSelect.value === 'other') {
+        sourceSelect.style.display = 'none';
+        sourceInput.style.display = 'block';
+        sourceInput.focus();
+    }
+}
+
+sourceInput.addEventListener('blur', function() {
+    if (this.value.trim() === '') {
+        sourceInput.style.display = 'none';
+        sourceSelect.style.display = 'block';
+        sourceSelect.value = 'SnapDocs';
+    }
+});
+
+const invoiceDateInput = document.getElementById('invoiceDate');
+const dueDateInput = document.getElementById('dueDate');
+
+function calculateDueDate() {
+    if (!invoiceDateInput.value) return;
+    
+    let days = 0;
+    const termVal = (termsSelect.style.display === 'none' ? termsInput.value : termsSelect.value).toLowerCase();
+    
+    if (termVal.includes('receipt') || termVal === '0') {
+        days = 0;
+    } else {
+        const match = termVal.match(/\d+/);
+        if (match) {
+            days = parseInt(match[0], 10);
+        } else {
+            days = 30; // Default fallback
+        }
+    }
+
+    const date = new Date(invoiceDateInput.value + 'T00:00:00'); 
+    date.setDate(date.getDate() + days);
+    dueDateInput.value = date.toISOString().slice(0,10);
+}
+
+invoiceDateInput.addEventListener('change', calculateDueDate);
+
+function togglePaymentMethods() {
+    document.getElementById('pm-check').style.display = document.getElementById('toggle-check').checked ? 'block' : 'none';
+    document.getElementById('pm-ach').style.display = document.getElementById('toggle-ach').checked ? 'block' : 'none';
+    document.getElementById('pm-zelle').style.display = document.getElementById('toggle-zelle').checked ? 'flex' : 'none';
+    document.getElementById('pm-venmo').style.display = document.getElementById('toggle-venmo').checked ? 'flex' : 'none';
+    document.getElementById('pm-cashapp').style.display = document.getElementById('toggle-cashapp').checked ? 'flex' : 'none';
+    
+    syncBizToRemit();
+}
+
+function syncBizToRemit() {
+    const toggleCheck = document.getElementById('toggle-check');
+    if (toggleCheck && toggleCheck.checked) {
+        const remitArea = document.getElementById('remit-to');
+        // Only live-sync if the user hasn't explicitly typed over the box
+        if (remitArea && !remitArea.dataset.edited) {
+            const name = document.getElementById('biz-name').value;
+            const street = document.getElementById('biz-street').value;
+            const city = document.getElementById('biz-city').value;
+            
+            // Build the string cleanly, ignoring empty inputs
+            const parts = [name, street, city].filter(p => p && p.trim() !== '');
+            if (parts.length > 0) {
+                remitArea.value = parts.join('\n');
+            } else {
+                remitArea.value = ''; // clears it if everything is deleted
+            }
+        }
+    }
+}
+
+// Initial Boot
+const today = new Date();
+const iso = today.toISOString().slice(0,10);
+invoiceDateInput.value = iso;
+calculateDueDate();
 
 addRow('Notary / Loan Signing Service', 1, 0);
 </script>
